@@ -13,25 +13,20 @@ from sentence_transformers import SentenceTransformer
 
 from model import FlowDriveNet, train_flowdrive
 from train_handler import AdaptiveTailProcessor # Import our new pipeline
-
-# µ¼ÈëÄãµÄ×Ô¶¨ÒåÄ£¿é
 from model import FlowDriveNet, train_flowdrive
 from train_handler import AdaptiveTailProcessor 
 
-# ================= ÅäÖÃÓëÂ·¾¶ =================
+
 REAL_DATA_PATH = '/home/zwy/TrajFlow/ori2_48.csv'
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 BATCH_SIZE = 256
 
-# --- ¶ÏµãÐøÑµÅäÖÃ ---
-RESUME_TRAINING = True  # ÊÇ·ñ´Ó¶Ïµã¼ÌÐø
-# Ö¸ÏòÄãÖ®Ç°±£´æµÄ 300 epoch Ä£ÐÍ
-PRETRAINED_MODEL_PATH = '/home/zwy/flowdrive/training_resume_20260328_021717/flow_model_epoch_900.pth'
-START_EPOCH = 900       # ÆðÊ¼ÂÖÊý
-TOTAL_EPOCHS = 1800      # Ä¿±ê×ÜÂÖÊý
+RESUME_TRAINING = True  # æ˜¯å¦ä»Žæ–­ç‚¹ç»§ç»­
+PRETRAINED_MODEL_PATH = '/yourpath/flow_model_epoch.pth'
+START_EPOCH = 0       # èµ·å§‹è½®æ•°
+TOTAL_EPOCHS = 2000      # ç›®æ ‡æ€»è½®æ•°
 SAVE_INTERVAL = 50
 
-# --- Êä³öÄ¿Â¼ ---
 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
 OUTPUT_DIR = f'./training_resume_{timestamp}'
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -40,7 +35,6 @@ SCALER_PATH = os.path.join(OUTPUT_DIR, 'scalers_dict.pkl')
 FLOW_MODEL_PATH = os.path.join(OUTPUT_DIR, 'flow_model_final.pth')
 LOG_FILE_PATH = os.path.join(OUTPUT_DIR, 'resume_training.log')
 
-# ================= ÈÕÖ¾ÅäÖÃ =================
 logging.basicConfig(
     level=logging.INFO, 
     format='%(asctime)s - %(message)s',
@@ -77,8 +71,7 @@ class FlowDriveDataset(Dataset):
 
 def main():
     logger.info(f"Resume session. Outputs: {OUTPUT_DIR}")
-    
-    # 1. ¼ÓÔØÊý¾Ý
+
     logger.info(">>> 1. Loading data...")
     df_real = pd.read_csv(REAL_DATA_PATH).fillna(0)
 
@@ -87,23 +80,19 @@ def main():
                    'flowEndReason', 'category', 'application_protocol', 'web_service', 'target_goal_idx']
     feature_cols = [col for col in df_real.columns if col not in ignore_cols]
 
-    # 2. Ô¤´¦Àí (×¢Òâ£º¼ÌÐøÑµÁ·Ê±Ó¦È·±£ Processor µÄÂß¼­ÓëÖ®Ç°Ò»ÖÂ)
     logger.info(">>> 2. Adaptive Tail-Aware Processing...")
     processor = AdaptiveTailProcessor(df_real, feature_cols)
     transformed_data, weights, scalers = processor.process()
     joblib.dump(scalers, SCALER_PATH)
 
-    # 3. Êý¾Ý¼ÓÔØÆ÷
     logger.info(">>> 3. Preparing Balanced DataLoader...")
     dataset = FlowDriveDataset(df_real, transformed_data, weights)
     sampler = WeightedRandomSampler(weights, num_samples=len(weights), replacement=True)
     dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, sampler=sampler)
 
-    # 4. ³õÊ¼»¯Ä£ÐÍ
     logger.info(">>> 4. Initializing FlowDriveNet...")
     flow_model = FlowDriveNet(num_features=len(feature_cols), semantic_dim=384, hidden_dim=512).to(DEVICE)
 
-    # --- ºËÐÄ£º¼ÓÔØ¶ÏµãÈ¨ÖØ ---
     current_start = 0
     if RESUME_TRAINING:
         if os.path.exists(PRETRAINED_MODEL_PATH):
@@ -113,7 +102,6 @@ def main():
         else:
             logger.error(f"? Pretrained file not found at {PRETRAINED_MODEL_PATH}. Starting from 0.")
 
-    # 5. ¿ªÊ¼ÑµÁ·
     logger.info(f">>> 5. Training from Epoch {current_start} to {TOTAL_EPOCHS}...")
     trained_flow = train_flowdrive(
         dataloader, 
@@ -122,10 +110,9 @@ def main():
         device=DEVICE,
         save_dir=OUTPUT_DIR, 
         save_interval=SAVE_INTERVAL,
-        start_epoch=current_start  # È·±£ÄãµÄ model.py Ö§³Ö´Ë²ÎÊý
+        start_epoch=current_start 
     )
 
-    # 6. ±£´æ×îÖÕ½á¹û
     torch.save(trained_flow.state_dict(), FLOW_MODEL_PATH)
     logger.info(f"Training finished. Final model: {FLOW_MODEL_PATH}")
 
