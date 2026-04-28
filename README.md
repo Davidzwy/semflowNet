@@ -1,34 +1,34 @@
-## 📁 代码模块说明
-项目逻辑严密对应摘要中的各个技术环节：
-- **`model.py` (架构核心):** 实现了基于 **Adaptive Gating** 的交叉注意力块、**Tabular AE** 以及集成 **mini-batch OT** 的流匹配逻辑。
-- **`train_handler.py` (数据预处理):** 针对流量数据的异构属性和长尾特征，进行自适应量纲对齐与密度逆向采样权重计算。
-- **`train.py` (联合训练):** 调用 LLM 提取协议语义先验，执行从隐空间预训练到流轨迹优化的两阶段训练任务。
-- **`process.py` (受控生成):** 封装了 SDE 求解器与 CFG 引导逻辑，支持按需生成用于数据增强的攻击样本。
-- **`analyze.py` (质量评估):** 提供多维统计分布度量（KS、Wasserstein）及特征相关性漂移分析。
-    
+## 📁 Code Modules Overview
+The technical components of the project are as follows:
+- **`model.py` (Architecture Core):** Implements cross-attention blocks based on **Adaptive Gating**, **Tabular AE**, and flow matching logic integrated with **mini-batch OT** (Optimal Transport).
+- **`train_handler.py` (Data Preprocessing):** Handles adaptive dimension alignment and inverse density sampling weight calculation tailored to the heterogeneous attributes and long-tail characteristics of traffic data.
+- **`train.py` (Joint Training):** Invokes an LLM to extract protocol semantic priors and executes a two-stage training task, spanning from latent space pre-training to flow trajectory optimization.
+- **`process.py` (Controlled Generation):** Encapsulates the SDE solver and CFG (Classifier-Free Guidance) logic, supporting the on-demand generation of attack samples for data augmentation.
+- **`analyze.py` (Quality Evaluation):** Provides multi-dimensional statistical distribution metrics (KS, Wasserstein) and feature correlation drift analysis.
+    
 
-## 🚀 快速开始
+## 🚀 Quick Start
 
-### 1. 准备环境
-```
+### 1. Environment Setup
+```bash
 pip install torch sentence-transformers pot pandas numpy scikit-learn joblib
 ```
 
-### 2. 模型训练
-在 `train.py` 中配置数据集路径，启动 SemflowNet 训练：
-```
+### 2. Model Training
+Configure the dataset path in `train.py` and start the SemflowNet training:
+```bash
 python train.py
 ```
-_训练过程会自动完成语义提取 -> AE 隐空间构建 -> 流匹配轨迹直线化。_
+_The training process automatically completes semantic extraction -> AE latent space construction -> flow matching trajectory straightening._
 
-### 3. 高保真流量生成
-运行 `process.py` 生成合成数据集，用于 IDS 模型的稳健性增强：
-```
+### 3. High-Fidelity Traffic Generation
+Run `process.py` to generate a synthetic dataset for enhancing the robustness of IDS (Intrusion Detection System) models:
+```bash
 python process.py
 ```
 
-### 4. 评估生成质量
-对比合成数据与真实数据的分布一致性：
-```
+### 4. Evaluate Generation Quality
+Compare the distribution consistency between the synthetic data and the real data:
+```bash
 python analyze.py
 ```
